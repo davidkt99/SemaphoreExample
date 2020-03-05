@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <semaphore.h>
+#include <mutex>
 #include <list>
 
 using namespace std;
@@ -13,21 +14,17 @@ void *process3 (void* dummy);
 
 void waitFreeOne();
 
-int n = 10;
-sem_t freefull, onefull, twofull, freeedit, oneedit, twoedit, p1, p2, p3;
+int n = 2;
+sem_t freefull, onefull, twofull, p1, p2;
 list<int> freelist(n, 0), list1(0), list2(0);
-int shared = 0;
+mutex mtx, freelock, lock1, lock2;
 
 int main () {
 	sem_init(&freefull, 0, n);
 	sem_init(&onefull, 0, 0);
 	sem_init(&twofull, 0, 0);
-	sem_init(&freeedit, 0, 1);
-	sem_init(&oneedit, 0, 1);
-	sem_init(&twoedit, 0, 1);
 	sem_init(&p1, 0, 1);
 	sem_init(&p2, 0, 0);
-	sem_init(&p3, 0, 0);
 	pthread_t t1, t2, t3;
 	pthread_create(&t1, NULL, process1, NULL);
 	pthread_create(&t2, NULL, process2, NULL);
@@ -40,115 +37,95 @@ int main () {
 void *process1 (void* dummy) {
 	int b;
 	while (1) {
-		printf("begin 1\t\t %d %d %d\n", freelist.size(), list1.size(), list2.size());
-		fflush(stdout);
-		//sem_wait(&p1);
-		sem_wait(&freefull);
-		sem_wait(&freeedit);
+		sem_wait(&p1);
+		mtx.lock();
+		if (freelist.size() < 1) {
+			mtx.unlock();
+			sem_wait(&freefull);
+		} else {
+			sem_wait(&freefull);
+			mtx.unlock();
+		}
+
+		freelock.lock();
 		b = freelist.front();
 		freelist.pop_front();
-		sem_post(&freeedit);
+		freelock.unlock();
 
 		b = 2;
-
-		sem_wait(&oneedit);
+		lock1.lock();
 		list1.push_back(b);
-		sem_post(&oneedit);
+		lock1.unlock();
 		sem_post(&onefull);
-		//sem_post(&p2);
-		printf("end 1\t\t %d %d %d\n", freelist.size(), list1.size(), list2.size());
-		fflush(stdout);
+		sem_post(&p2);
 	}
 }
 
 void *process2 (void* dummy) {
 	int x, y;
 	while (1) {
-		printf("begin 2\t\t %d %d %d\n", freelist.size(), list1.size(), list2.size());
-		fflush(stdout);
-		//sem_wait(&p2);
+		sem_wait(&p2);
+
 		waitFreeOne();
 
-		sem_wait(&oneedit);
+		lock1.lock();
 		x = list1.front();
 		list1.pop_front();
-		sem_post(&oneedit);
+		lock1.unlock();
 
-		sem_wait(&freeedit);
+		freelock.lock();
 		y = freelist.front();
 		freelist.pop_front();
 		freelist.push_back(x);
-		sem_post(&freeedit);
+		freelock.unlock();
 		sem_post(&freefull);
 
 		y = x*5;
 
-		sem_wait(&twoedit);
+		lock2.lock();
 		list2.push_back(y);
-		sem_post(&twoedit);
+		lock2.unlock();
 		sem_post(&twofull);
-		//sem_post(&p3);
-		printf("end 2\t\t %d %d %d\n", freelist.size(), list1.size(), list2.size());
-		fflush(stdout);
 	}
 }
 
 void *process3 (void* dummy) {
 	int c;
 	while (1) {
-		printf("begin 3\t\t %d %d %d\n", freelist.size(), list1.size(), list2.size());
-		fflush(stdout);
-		//sem_wait(&p3);
 		sem_wait(&twofull);
-		sem_wait(&twoedit);
+		lock2.lock();
 		c = list2.front();
 		list2.pop_front();
-		sem_post(&twoedit);
+		lock2.unlock();
 
 		printf("%d\n", c);
 		fflush(stdout);
 
-		sem_wait(&freeedit);
+		freelock.lock();//pthread_mutex_lock(&lockfree);
 		freelist.push_back(c);
-		sem_post(&freeedit);
+		freelock.unlock();//pthread_mutex_unlock(&lockfree);
 		sem_post(&freefull);
-		//sem_post(&p1);
-		printf("end 3\t\t %d %d %d\n", freelist.size(), list1.size(), list2.size());
-		fflush(stdout);
+		sem_post(&p1);
 	}
 }
 
 void waitFreeOne() {
-	int freeval, oneval;
+	mtx.lock();
 	while (1) {
-		sem_wait(&freeedit);
-		sem_getvalue(&freefull, &freeval);
-		printf("waiting freeval %d\n", freeval);
-		fflush(stdout);
-		if (freeval < 1) {
-			sem_post(&freeedit);
+		if (freelist.size() < 1) {
 			sem_wait(&freefull);
-			continue; //restarts loop
+			continue;
 		}
 
-		sem_wait(&oneedit);
-		if (oneval < 1) {
-			sem_post(&freeedit);
-			sem_post(&oneedit);
+		if (list1.size() < 1) {
 			sem_wait(&onefull);
 			continue;
 		}
 
 		break;
 	}
-	sem_getvalue(&freefull, &freeval);
-	printf("broken freeval %d\n\n", freeval);
-	fflush(stdout);
+
 	sem_wait(&freefull);
 	sem_wait(&onefull);
-	sem_post(&freeedit);
-	sem_post(&oneedit);
-
-	printf("out\n");
-	fflush(stdout);
+	mtx.unlock();
 }
