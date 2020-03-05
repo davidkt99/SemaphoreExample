@@ -40,6 +40,8 @@ int main () {
 void *process1 (void* dummy) {
 	int b;
 	while (1) {
+		printf("begin 1\t\t %d %d %d\n", freelist.size(), list1.size(), list2.size());
+		fflush(stdout);
 		//sem_wait(&p1);
 		sem_wait(&freefull);
 		sem_wait(&freeedit);
@@ -54,12 +56,16 @@ void *process1 (void* dummy) {
 		sem_post(&oneedit);
 		sem_post(&onefull);
 		//sem_post(&p2);
+		printf("end 1\t\t %d %d %d\n", freelist.size(), list1.size(), list2.size());
+		fflush(stdout);
 	}
 }
 
 void *process2 (void* dummy) {
 	int x, y;
 	while (1) {
+		printf("begin 2\t\t %d %d %d\n", freelist.size(), list1.size(), list2.size());
+		fflush(stdout);
 		//sem_wait(&p2);
 		waitFreeOne();
 
@@ -82,12 +88,16 @@ void *process2 (void* dummy) {
 		sem_post(&twoedit);
 		sem_post(&twofull);
 		//sem_post(&p3);
+		printf("end 2\t\t %d %d %d\n", freelist.size(), list1.size(), list2.size());
+		fflush(stdout);
 	}
 }
 
 void *process3 (void* dummy) {
 	int c;
 	while (1) {
+		printf("begin 3\t\t %d %d %d\n", freelist.size(), list1.size(), list2.size());
+		fflush(stdout);
 		//sem_wait(&p3);
 		sem_wait(&twofull);
 		sem_wait(&twoedit);
@@ -103,6 +113,8 @@ void *process3 (void* dummy) {
 		sem_post(&freeedit);
 		sem_post(&freefull);
 		//sem_post(&p1);
+		printf("end 3\t\t %d %d %d\n", freelist.size(), list1.size(), list2.size());
+		fflush(stdout);
 	}
 }
 
@@ -111,7 +123,7 @@ void waitFreeOne() {
 	while (1) {
 		sem_wait(&freeedit);
 		sem_getvalue(&freefull, &freeval);
-		printf("freeval %d\n", freeval);
+		printf("waiting freeval %d\n", freeval);
 		fflush(stdout);
 		if (freeval < 1) {
 			sem_post(&freeedit);
@@ -130,7 +142,7 @@ void waitFreeOne() {
 		break;
 	}
 	sem_getvalue(&freefull, &freeval);
-	printf("freeval %d\n\n", freeval);
+	printf("broken freeval %d\n\n", freeval);
 	fflush(stdout);
 	sem_wait(&freefull);
 	sem_wait(&onefull);
