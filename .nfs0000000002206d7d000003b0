@@ -111,23 +111,31 @@ void waitFreeOne() {
 	while (1) {
 		sem_wait(&freeedit);
 		sem_getvalue(&freefull, &freeval);
+		printf("freeval %d\n", freeval);
+		fflush(stdout);
 		if (freeval < 1) {
 			sem_post(&freeedit);
 			sem_wait(&freefull);
 			continue; //restarts loop
 		}
-
+		sem_getvalue(&freefull, &freeval);
+		printf("freeval %d\n", freeval);
+		fflush(stdout);
 		sem_wait(&oneedit);
-		sem_getvalue(&onefull, &oneval);
 		if (oneval < 1) {
-			sem_post(&freeedit);
+			//sem_post(&freeedit);
 			sem_post(&oneedit);
 			sem_wait(&onefull);
 			continue;
 		}
+		sem_getvalue(&freefull, &freeval);
+		printf("freeval %d\n", freeval);
+		fflush(stdout);
 		break;
 	}
 	sem_getvalue(&freefull, &freeval);
+	printf("freeval %d\n", freeval);
+	fflush(stdout);
 	sem_wait(&freefull);
 	sem_wait(&onefull);
 	sem_post(&freeedit);
