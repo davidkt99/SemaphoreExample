@@ -3,9 +3,11 @@
 #include <unistd.h>
 #include <pthread.h>
 
-void *process1 ();
-void *process2 ();
-void *process3 ();
+using namespace std;
+
+void *process1 (void* dummy);
+void *process2 (void* dummy);
+void *process3 (void* dummy);
 
 int shared = 0;
 
@@ -19,21 +21,21 @@ int main () {
 	pthread_join(t3, NULL);
 }
 
-void *process1 () {
+void *process1 (void* dummy) {
 	printf("Thread 1\n");
 	shared++;
 	printf("1 Shared = %d\n", shared);
 	return NULL;
 }
 
-void *process2 () {
+void *process2 (void* dummy) {
 	printf("Thread 2\n");
 	shared++;
 	printf("2 Shared = %d\n", shared);
 	return NULL;
 }
 
-void *process3 () {
+void *process3 (void* dummy) {
 	printf("Thread 3\n");
 	shared++;
 	printf("3 Shared = %d\n", shared);
