@@ -121,7 +121,7 @@ void waitFreeOne() {
 
 		sem_wait(&oneedit);
 		if (oneval < 1) {
-			//sem_post(&freeedit);
+			sem_post(&freeedit);
 			sem_post(&oneedit);
 			sem_wait(&onefull);
 			continue;
