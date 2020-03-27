@@ -5,6 +5,7 @@
 #include <semaphore.h>
 #include <mutex>
 #include <list>
+#include <iostream>
 
 using namespace std;
 
@@ -47,14 +48,17 @@ void *process1 (void* dummy) {
 			mtx.unlock();
 		}
 
+
 		freelock.lock();
 		b = freelist.front();
+        cout << "Thread #1 is poping freelist" << endl;
 		freelist.pop_front();
 		freelock.unlock();
 
 		b = 2;
 		lock1.lock();
 		list1.push_back(b);
+        cout << "Thread #1 is pushing produced info into lock1" << endl;
 		lock1.unlock();
 		sem_post(&onefull);
 		sem_post(&p2);
@@ -70,12 +74,14 @@ void *process2 (void* dummy) {
 
 		lock1.lock();
 		x = list1.front();
+        cout << "Thread #2 is poping list1 to x" << endl;
 		list1.pop_front();
 		lock1.unlock();
 
 		freelock.lock();
 		y = freelist.front();
 		freelist.pop_front();
+        cout << "Thread #2 is poping freelist to y then pushing x into freelist" << endl;
 		freelist.push_back(x);
 		freelock.unlock();
 		sem_post(&freefull);
@@ -84,6 +90,7 @@ void *process2 (void* dummy) {
 
 		lock2.lock();
 		list2.push_back(y);
+        cout << "Thread #2 is pushing to list2" << endl;
 		lock2.unlock();
 		sem_post(&twofull);
 	}
@@ -95,6 +102,7 @@ void *process3 (void* dummy) {
 		sem_wait(&twofull);
 		lock2.lock();
 		c = list2.front();
+        cout << "Thread #3 is poping list2 into c" << endl;
 		list2.pop_front();
 		lock2.unlock();
 
@@ -103,6 +111,7 @@ void *process3 (void* dummy) {
 
 		freelock.lock();//pthread_mutex_lock(&lockfree);
 		freelist.push_back(c);
+        cout << "Thread #3 is producing from c to push into freelist" << endl;
 		freelock.unlock();//pthread_mutex_unlock(&lockfree);
 		sem_post(&freefull);
 		sem_post(&p1);
